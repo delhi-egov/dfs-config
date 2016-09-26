@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/processdef">
+  <process id="Granting-of-Fire-Safety-Certificate" name="Granting-of-Fire-Safety-Certificate" isExecutable="true">
+    <startEvent id="start" name="Start" activiti:initiator="initiator"></startEvent>
+    <userTask id="Building_Inspection" name="Building Inspection" activiti:candidateGroups="ado">
+      <extensionElements>
+        <activiti:taskListener event="complete" delegateExpression="${assigneeResolverTaskListener}"></activiti:taskListener>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="sid-82F486D1-C1F3-458E-9B7C-328850D2EE45" sourceRef="start" targetRef="Building_Inspection"></sequenceFlow>
+    <userTask id="Review-by-Divisional-Officer" name="Review by Divisional Officer" activiti:assignee="${previousAssignee.supervisor}">
+      <extensionElements>
+        <activiti:taskListener event="complete" delegateExpression="${assigneeResolverTaskListener}"></activiti:taskListener>
+      </extensionElements>
+    </userTask>
+    <userTask id="Review-by-Deputy-Chief-Fire-Officer" name="Review by Deputy Chief Fire Officer" activiti:assignee="${previousAssignee.supervisor}">
+      <extensionElements>
+        <activiti:taskListener event="complete" delegateExpression="${assigneeResolverTaskListener}"></activiti:taskListener>
+      </extensionElements>
+    </userTask>
+    <userTask id="Recommendations-submission-by-Assistant-Divisional-Officer" name="Recommendations submission by Assistant Divisional Officer" activiti:assignee="${originalAssignee.id}">
+      <extensionElements>
+        <activiti:taskListener event="complete" delegateExpression="${assigneeResolverTaskListener}"></activiti:taskListener>
+      </extensionElements>
+    </userTask>
+    <scriptTask id="Save-the-original-assignee" name="Save the original assignee" scriptFormat="groovy" activiti:autoStoreVariables="false">
+      <script><![CDATA[execution.setVariable("originalAssignee", previousAssignee)]]></script>
+    </scriptTask>
+    <userTask id="Decision-on-application-by-Director" name="Decision on application by Director" activiti:assignee="${previousAssignee.supervisor}">
+      <extensionElements>
+        <activiti:taskListener event="complete" delegateExpression="${assigneeResolverTaskListener}"></activiti:taskListener>
+      </extensionElements>
+    </userTask>
+    <sequenceFlow id="sid-2F6DAB8E-7957-4BCF-AEBA-16D868A988D9" sourceRef="Building_Inspection" targetRef="Save-the-original-assignee"></sequenceFlow>
+    <sequenceFlow id="sid-C700DABF-5E12-4349-B0BC-A7F0EB73D46E" sourceRef="Save-the-original-assignee" targetRef="Recommendations-submission-by-Assistant-Divisional-Officer"></sequenceFlow>
+    <exclusiveGateway id="DO-decision" name="Report check"></exclusiveGateway>
+    <sequenceFlow id="sid-5E184257-D169-4937-AF48-472BABD384DE" sourceRef="Recommendations-submission-by-Assistant-Divisional-Officer" targetRef="Review-by-Divisional-Officer"></sequenceFlow>
+    <exclusiveGateway id="DCFO-decision" name="Report check"></exclusiveGateway>
+    <sequenceFlow id="sid-8F753500-F33E-405F-9689-0C0EFCAA60EE" sourceRef="Review-by-Deputy-Chief-Fire-Officer" targetRef="DCFO-decision"></sequenceFlow>
+    <serviceTask id="Acceptance-Email-to-applicant" name="Acceptance Email to applicant" activiti:type="mail">
+      <extensionElements>
+        <activiti:field name="to">
+          <activiti:expression><![CDATA[${user.email}]]></activiti:expression>
+        </activiti:field>
+        <activiti:field name="from">
+          <activiti:string><![CDATA[vaibhavsinh@gmail.com]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="subject">
+          <activiti:expression><![CDATA[Decision on your application ${context.applicationType}]]></activiti:expression>
+        </activiti:field>
+        <activiti:field name="text">
+          <activiti:string><![CDATA[Your application has been accepted. The Fire Safety Certificate will be sent to you through regular mail in the next 3 days.]]></activiti:string>
+        </activiti:field>
+      </extensionElements>
+    </serviceTask>
+    <endEvent id="End-1" name="End"></endEvent>
+    <sequenceFlow id="sid-03A33D5B-3056-4CF7-AEC6-4E62F542764F" sourceRef="Acceptance-Email-to-applicant" targetRef="End-1"></sequenceFlow>
+    <exclusiveGateway id="Director-decision" name="Final decision"></exclusiveGateway>
+    <sequenceFlow id="sid-A4E5F008-B084-4320-86F8-786CE99B2EF7" sourceRef="Decision-on-application-by-Director" targetRef="Director-decision"></sequenceFlow>
+    <serviceTask id="Rejection-Email-to-applicant" name="Rejection Email to applicant" activiti:type="mail">
+      <extensionElements>
+        <activiti:field name="to">
+          <activiti:expression><![CDATA[${user.email}]]></activiti:expression>
+        </activiti:field>
+        <activiti:field name="from">
+          <activiti:string><![CDATA[vaibhavsinh@gmail.com]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="subject">
+          <activiti:expression><![CDATA[Decision on your application ${context.applicationType}]]></activiti:expression>
+        </activiti:field>
+        <activiti:field name="text">
+          <activiti:expression><![CDATA[Your application has been rejected. The reason for the same is as follows:
+
+${rejectionReason}
+
+Once you have fixed the problems, please reapply.]]></activiti:expression>
+        </activiti:field>
+      </extensionElements>
+    </serviceTask>
+    <endEvent id="End-2" name="End"></endEvent>
+    <sequenceFlow id="sid-2638E32F-760E-4431-83FA-C0B27D45FE2A" sourceRef="Rejection-Email-to-applicant" targetRef="End-2"></sequenceFlow>
+    <sequenceFlow id="sid-E33670D0-9A44-4B7A-85D5-812FE3D0C085" sourceRef="Review-by-Divisional-Officer" targetRef="DO-decision"></sequenceFlow>
+    <sequenceFlow id="Divisional-Officer-accepts" name="Divisional Officer accepts" sourceRef="DO-decision" targetRef="Review-by-Deputy-Chief-Fire-Officer">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${isOk == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Divisional-Officer-rejects" name="Divisional Officer rejects" sourceRef="DO-decision" targetRef="Recommendations-submission-by-Assistant-Divisional-Officer">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${isOk == false}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Deputy-Chief-Fire-Officer-accepts" name="Deputy Chief Fire Officer accepts" sourceRef="DCFO-decision" targetRef="Decision-on-application-by-Director">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${isOk == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Deputy-Chief-Fire-Officer-rejects" name="Deputy Chief Fire Officer rejects" sourceRef="DCFO-decision" targetRef="Recommendations-submission-by-Assistant-Divisional-Officer">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${isOk == false}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Director-approves" name="Director approves" sourceRef="Director-decision" targetRef="Acceptance-Email-to-applicant">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${isOk == true}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="Director-rejects" name="Director rejects" sourceRef="Director-decision" targetRef="Rejection-Email-to-applicant">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${isOk == false}]]></conditionExpression>
+    </sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_Granting-of-Fire-Safety-Certificate">
+    <bpmndi:BPMNPlane bpmnElement="Granting-of-Fire-Safety-Certificate" id="BPMNPlane_Granting-of-Fire-Safety-Certificate">
+      <bpmndi:BPMNShape bpmnElement="start" id="BPMNShape_start">
+        <omgdc:Bounds height="30.0" width="30.0" x="109.75" y="173.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Building_Inspection" id="BPMNShape_Building_Inspection">
+        <omgdc:Bounds height="80.0" width="100.0" x="204.75" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Review-by-Divisional-Officer" id="BPMNShape_Review-by-Divisional-Officer">
+        <omgdc:Bounds height="80.0" width="100.0" x="625.0" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Review-by-Deputy-Chief-Fire-Officer" id="BPMNShape_Review-by-Deputy-Chief-Fire-Officer">
+        <omgdc:Bounds height="80.0" width="100.0" x="990.0" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Recommendations-submission-by-Assistant-Divisional-Officer" id="BPMNShape_Recommendations-submission-by-Assistant-Divisional-Officer">
+        <omgdc:Bounds height="80.0" width="100.0" x="480.0" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Save-the-original-assignee" id="BPMNShape_Save-the-original-assignee">
+        <omgdc:Bounds height="80.0" width="100.0" x="340.0" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Decision-on-application-by-Director" id="BPMNShape_Decision-on-application-by-Director">
+        <omgdc:Bounds height="80.0" width="100.0" x="1400.0" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="DO-decision" id="BPMNShape_DO-decision">
+        <omgdc:Bounds height="40.0" width="40.0" x="758.75" y="168.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="DCFO-decision" id="BPMNShape_DCFO-decision">
+        <omgdc:Bounds height="40.0" width="40.0" x="1125.0" y="168.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Acceptance-Email-to-applicant" id="BPMNShape_Acceptance-Email-to-applicant">
+        <omgdc:Bounds height="80.0" width="100.0" x="1770.0" y="148.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End-1" id="BPMNShape_End-1">
+        <omgdc:Bounds height="28.0" width="28.0" x="1950.0" y="174.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Director-decision" id="BPMNShape_Director-decision">
+        <omgdc:Bounds height="40.0" width="40.0" x="1545.0" y="168.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="Rejection-Email-to-applicant" id="BPMNShape_Rejection-Email-to-applicant">
+        <omgdc:Bounds height="80.0" width="100.0" x="1770.0" y="285.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="End-2" id="BPMNShape_End-2">
+        <omgdc:Bounds height="28.0" width="28.0" x="1950.0" y="311.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="Director-rejects" id="BPMNEdge_Director-rejects">
+        <omgdi:waypoint x="1565.2437379576108" y="207.7562620423892"></omgdi:waypoint>
+        <omgdi:waypoint x="1563.75" y="320.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1770.0" y="324.0243902439024"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-8F753500-F33E-405F-9689-0C0EFCAA60EE" id="BPMNEdge_sid-8F753500-F33E-405F-9689-0C0EFCAA60EE">
+        <omgdi:waypoint x="1090.0" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1125.0" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-E33670D0-9A44-4B7A-85D5-812FE3D0C085" id="BPMNEdge_sid-E33670D0-9A44-4B7A-85D5-812FE3D0C085">
+        <omgdi:waypoint x="725.0" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="758.75" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Divisional-Officer-rejects" id="BPMNEdge_Divisional-Officer-rejects">
+        <omgdi:waypoint x="779.25" y="207.5"></omgdi:waypoint>
+        <omgdi:waypoint x="779.25" y="389.0"></omgdi:waypoint>
+        <omgdi:waypoint x="555.0" y="389.0"></omgdi:waypoint>
+        <omgdi:waypoint x="555.0" y="228.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Deputy-Chief-Fire-Officer-accepts" id="BPMNEdge_Deputy-Chief-Fire-Officer-accepts">
+        <omgdi:waypoint x="1164.53125" y="188.46875"></omgdi:waypoint>
+        <omgdi:waypoint x="1400.0" y="188.08210180623973"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Deputy-Chief-Fire-Officer-rejects" id="BPMNEdge_Deputy-Chief-Fire-Officer-rejects">
+        <omgdi:waypoint x="1145.5" y="207.5"></omgdi:waypoint>
+        <omgdi:waypoint x="1145.5" y="441.0"></omgdi:waypoint>
+        <omgdi:waypoint x="506.0" y="441.0"></omgdi:waypoint>
+        <omgdi:waypoint x="505.00467289719626" y="228.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-A4E5F008-B084-4320-86F8-786CE99B2EF7" id="BPMNEdge_sid-A4E5F008-B084-4320-86F8-786CE99B2EF7">
+        <omgdi:waypoint x="1500.0" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1545.0" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-2F6DAB8E-7957-4BCF-AEBA-16D868A988D9" id="BPMNEdge_sid-2F6DAB8E-7957-4BCF-AEBA-16D868A988D9">
+        <omgdi:waypoint x="304.75" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="340.0" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Divisional-Officer-accepts" id="BPMNEdge_Divisional-Officer-accepts">
+        <omgdi:waypoint x="798.2865033621517" y="188.4634966378482"></omgdi:waypoint>
+        <omgdi:waypoint x="990.0" y="188.09587727708532"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-C700DABF-5E12-4349-B0BC-A7F0EB73D46E" id="BPMNEdge_sid-C700DABF-5E12-4349-B0BC-A7F0EB73D46E">
+        <omgdi:waypoint x="440.0" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="480.0" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-2638E32F-760E-4431-83FA-C0B27D45FE2A" id="BPMNEdge_sid-2638E32F-760E-4431-83FA-C0B27D45FE2A">
+        <omgdi:waypoint x="1870.0" y="325.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1950.0" y="325.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="Director-approves" id="BPMNEdge_Director-approves">
+        <omgdi:waypoint x="1584.5374015748032" y="188.46259842519686"></omgdi:waypoint>
+        <omgdi:waypoint x="1770.0" y="188.098231827112"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-82F486D1-C1F3-458E-9B7C-328850D2EE45" id="BPMNEdge_sid-82F486D1-C1F3-458E-9B7C-328850D2EE45">
+        <omgdi:waypoint x="139.75" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="204.75" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-5E184257-D169-4937-AF48-472BABD384DE" id="BPMNEdge_sid-5E184257-D169-4937-AF48-472BABD384DE">
+        <omgdi:waypoint x="580.0" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="625.0" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="sid-03A33D5B-3056-4CF7-AEC6-4E62F542764F" id="BPMNEdge_sid-03A33D5B-3056-4CF7-AEC6-4E62F542764F">
+        <omgdi:waypoint x="1870.0" y="188.0"></omgdi:waypoint>
+        <omgdi:waypoint x="1950.0" y="188.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>
